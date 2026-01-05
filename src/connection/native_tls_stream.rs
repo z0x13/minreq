@@ -16,7 +16,10 @@ pub fn create_secured_stream(conn: &Connection) -> Result<HttpStream, Error> {
     #[cfg(feature = "log")]
     log::trace!("Setting up TLS parameters for {}.", conn.request.url.host);
     let dns_name = &conn.request.url.host;
-    let sess = match TlsConnector::new() {
+    let sess = match TlsConnector::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+    {
         Ok(sess) => sess,
         Err(err) => return Err(Error::IoError(io::Error::new(io::ErrorKind::Other, err))),
     };
