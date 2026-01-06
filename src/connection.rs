@@ -220,7 +220,7 @@ impl Connection {
                 // do proxy things
                 let mut tcp = tcp_connect(&proxy.server, proxy.port)?;
 
-                write!(tcp, "{}", proxy.connect(&self.request)).unwrap();
+                write!(tcp, "{}", proxy.connect(&self.request))?;
                 tcp.flush()?;
 
                 let mut proxy_response = Vec::new();
@@ -365,11 +365,13 @@ where
             });
             if let Some(timeout_duration) = deadline.checked_duration_since(Instant::now()) {
                 match receiver.recv_timeout(timeout_duration) {
-                    Ok(()) => thread.join().unwrap(),
+                    Ok(()) => thread
+                        .join()
+                        .unwrap_or_else(|_| Err(Error::Other("request thread panicked"))),
                     Err(err) => match err {
                         RecvTimeoutError::Timeout => Err(Error::IoError(timeout_err())),
                         RecvTimeoutError::Disconnected => {
-                            Err(Error::Other("request connection paniced"))
+                            Err(Error::Other("request connection panicked"))
                         }
                     },
                 }
