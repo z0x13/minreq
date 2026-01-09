@@ -17,22 +17,9 @@ mod native_tls_stream;
 #[cfg(all(not(feature = "rustls"), feature = "native-tls"))]
 type SecuredStream = native_tls_stream::SecuredStream;
 
-#[cfg(all(
-    not(feature = "rustls"),
-    not(feature = "native-tls"),
-    feature = "openssl",
-))]
-mod openssl_stream;
-#[cfg(all(
-    not(feature = "rustls"),
-    not(feature = "native-tls"),
-    feature = "openssl",
-))]
-type SecuredStream = openssl_stream::SecuredStream;
-
 pub(crate) enum HttpStream {
     Unsecured(UnsecuredStream, Option<Instant>),
-    #[cfg(any(feature = "rustls", feature = "native-tls", feature = "openssl",))]
+    #[cfg(any(feature = "rustls", feature = "native-tls"))]
     Secured(Box<SecuredStream>, Option<Instant>),
 }
 
@@ -41,7 +28,7 @@ impl HttpStream {
         HttpStream::Unsecured(reader, timeout_at)
     }
 
-    #[cfg(any(feature = "rustls", feature = "native-tls", feature = "openssl"))]
+    #[cfg(any(feature = "rustls", feature = "native-tls"))]
     fn create_secured(reader: SecuredStream, timeout_at: Option<Instant>) -> HttpStream {
         HttpStream::Secured(Box::new(reader), timeout_at)
     }
@@ -78,7 +65,7 @@ impl Read for HttpStream {
                 timeout(inner, *timeout_at)?;
                 inner.read(buf)
             }
-            #[cfg(any(feature = "rustls", feature = "openssl", feature = "native-tls"))]
+            #[cfg(any(feature = "rustls", feature = "native-tls"))]
             HttpStream::Secured(inner, timeout_at) => {
                 timeout(inner.get_ref(), *timeout_at)?;
                 inner.read(buf)
@@ -133,7 +120,7 @@ impl Connection {
 
     /// Sends the [`Request`](struct.Request.html), consumes this
     /// connection, and returns a [`Response`](struct.Response.html).
-    #[cfg(any(feature = "rustls", feature = "native-tls", feature = "openssl",))]
+    #[cfg(any(feature = "rustls", feature = "native-tls"))]
     pub(crate) fn send_https(mut self) -> Result<ResponseLazy, Error> {
         enforce_timeout(self.timeout_at, move || {
             self.request.url.host = ensure_ascii_host(self.request.url.host)?;
@@ -142,12 +129,6 @@ impl Connection {
             let secured_stream = rustls_stream::create_secured_stream(&self)?;
             #[cfg(all(not(feature = "rustls"), feature = "native-tls"))]
             let secured_stream = native_tls_stream::create_secured_stream(&self)?;
-            #[cfg(all(
-                not(feature = "rustls"),
-                not(feature = "native-tls"),
-                feature = "openssl",
-            ))]
-            let secured_stream = openssl_stream::create_secured_stream(&self)?;
 
             #[cfg(feature = "log")]
             log::trace!("Reading HTTPS response from {}.", self.request.url.host);
@@ -256,13 +237,9 @@ fn handle_redirects(
         NextHop::Redirect(connection) => {
             let connection = connection?;
             if connection.request.url.https {
-                #[cfg(not(any(
-                    feature = "rustls",
-                    feature = "openssl",
-                    feature = "native-tls"
-                )))]
+                #[cfg(not(any(feature = "rustls", feature = "native-tls")))]
                 return Err(Error::HttpsFeatureNotEnabled);
-                #[cfg(any(feature = "rustls", feature = "openssl", feature = "native-tls"))]
+                #[cfg(any(feature = "rustls", feature = "native-tls"))]
                 return connection.send_https();
             } else {
                 connection.send()
