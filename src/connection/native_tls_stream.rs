@@ -37,6 +37,25 @@ pub fn create_secured_stream(conn: &Connection) -> Result<HttpStream, Error> {
         Err(err) => return Err(Error::IoError(io::Error::new(io::ErrorKind::Other, err))),
     };
 
+    // Verify certificate pin if configured
+    #[cfg(feature = "cert-pin")]
+    if let Some(expected_pin) = &conn.request.config.cert_pin {
+        let cert = tls.peer_certificate().map_err(|err| {
+            Error::IoError(io::Error::new(io::ErrorKind::Other, err))
+        })?.ok_or_else(|| {
+            Error::IoError(io::Error::new(
+                io::ErrorKind::Other,
+                "no peer certificate available",
+            ))
+        })?;
+        let cert_der = cert.to_der().map_err(|err| {
+            Error::IoError(io::Error::new(io::ErrorKind::Other, err))
+        })?;
+        crate::cert_pin::verify_pin(&cert_der, expected_pin).map_err(|err| {
+            Error::IoError(io::Error::new(io::ErrorKind::Other, err))
+        })?;
+    }
+
     #[cfg(feature = "log")]
     log::trace!("Writing HTTPS request to {}.", conn.request.url.host);
     let _ = tls.get_ref().set_write_timeout(conn.timeout()?);

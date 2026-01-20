@@ -84,6 +84,8 @@ pub struct Request {
     pub(crate) follow_redirects: bool,
     #[cfg(feature = "proxy")]
     pub(crate) proxy: Option<Proxy>,
+    #[cfg(feature = "cert-pin")]
+    pub(crate) cert_pin: Option<[u8; 32]>,
 }
 
 impl Request {
@@ -112,6 +114,8 @@ impl Request {
             follow_redirects: true,
             #[cfg(feature = "proxy")]
             proxy: None,
+            #[cfg(feature = "cert-pin")]
+            cert_pin: None,
         }
     }
 
@@ -267,6 +271,17 @@ impl Request {
     #[cfg(feature = "proxy")]
     pub fn with_proxy(mut self, proxy: Proxy) -> Request {
         self.proxy = Some(proxy);
+        self
+    }
+
+    /// Sets the expected SPKI (Subject Public Key Info) pin for certificate verification.
+    ///
+    /// The pin is a SHA-256 hash of the server certificate's SPKI.
+    /// If set, the TLS handshake will fail if the server's certificate
+    /// doesn't match this pin.
+    #[cfg(feature = "cert-pin")]
+    pub fn with_cert_pin(mut self, pin: [u8; 32]) -> Request {
+        self.cert_pin = Some(pin);
         self
     }
 

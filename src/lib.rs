@@ -243,6 +243,8 @@ mod http_url;
 mod proxy;
 mod request;
 mod response;
+#[cfg(feature = "cert-pin")]
+pub mod cert_pin;
 
 pub use error::*;
 #[cfg(feature = "proxy")]
