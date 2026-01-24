@@ -236,6 +236,8 @@ extern crate serde;
 #[cfg(feature = "json-using-serde")]
 extern crate serde_json;
 
+#[cfg(feature = "cert-pin")]
+pub mod cert_pin;
 mod connection;
 mod error;
 mod http_url;
@@ -243,8 +245,6 @@ mod http_url;
 mod proxy;
 mod request;
 mod response;
-#[cfg(feature = "cert-pin")]
-pub mod cert_pin;
 
 pub use error::*;
 #[cfg(feature = "proxy")]

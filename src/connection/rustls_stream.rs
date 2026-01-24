@@ -38,7 +38,12 @@ impl ServerCertVerifier for AcceptAnyCertVerifier {
         cert: &CertificateDer<'_>,
         dss: &DigitallySignedStruct,
     ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        verify_tls12_signature(message, cert, dss, &self.0.signature_verification_algorithms)
+        verify_tls12_signature(
+            message,
+            cert,
+            dss,
+            &self.0.signature_verification_algorithms,
+        )
     }
 
     fn verify_tls13_signature(
@@ -47,7 +52,12 @@ impl ServerCertVerifier for AcceptAnyCertVerifier {
         cert: &CertificateDer<'_>,
         dss: &DigitallySignedStruct,
     ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        verify_tls13_signature(message, cert, dss, &self.0.signature_verification_algorithms)
+        verify_tls13_signature(
+            message,
+            cert,
+            dss,
+            &self.0.signature_verification_algorithms,
+        )
     }
 
     fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
@@ -101,9 +111,8 @@ pub fn create_secured_stream(conn: &Connection) -> Result<HttpStream, Error> {
                 "empty certificate chain",
             ))
         })?;
-        crate::cert_pin::verify_pin(cert_der.as_ref(), expected_pin).map_err(|err| {
-            Error::IoError(io::Error::new(io::ErrorKind::Other, err))
-        })?;
+        crate::cert_pin::verify_pin(cert_der.as_ref(), expected_pin)
+            .map_err(|err| Error::IoError(io::Error::new(io::ErrorKind::Other, err)))?;
     }
 
     #[cfg(feature = "log")]
